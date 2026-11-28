@@ -2,9 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>rackhopper</title>
+    <script>
+      // Apply a saved theme before anything is drawn, so a reload doesn't flash
+      // the other theme first. (The rest of the app loads later, in main.ts.)
+      try {
+        const theme = localStorage.getItem('rackhopper.theme')
+        if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,34 +21,66 @@
     />
   </head>
   <body>
-    <main id="app">
+    <header class="topbar">
+      <img class="logo" src="/logo.png" alt="" width="36" height="36" />
       <h1>rackhopper</h1>
+      <nav class="project-actions" aria-label="Project" data-i18n-label="project.label">
+        <button id="new-project" class="topbar-button" type="button" data-i18n="project.new">
+          New
+        </button>
+        <button id="open-project" class="topbar-button" type="button" data-i18n="project.open">
+          Open…
+        </button>
+        <button id="save-project" class="topbar-button" type="button" data-i18n="project.save">
+          Save
+        </button>
+        <button id="share-project" class="topbar-button" type="button" data-i18n="project.share">
+          Share link
+        </button>
+        <input id="project-file" type="file" accept=".json,application/json" hidden />
+      </nav>
+      <span id="status" class="status" role="status" aria-live="polite"></span>
+      <!-- Segmented toggles (controls, theme, language) are added here by main.ts. -->
+      <div id="toggles" class="toggles"></div>
+    </header>
 
-      <section class="module" aria-labelledby="adsr-title">
-        <h2 id="adsr-title">ADSR</h2>
-        <label class="slider">
-          <span>Attack</span>
-          <input id="attack" type="range" min="0.001" max="2" step="0.001" />
-          <output id="attack-value"></output>
-        </label>
-        <label class="slider">
-          <span>Decay</span>
-          <input id="decay" type="range" min="0.001" max="2" step="0.001" />
-          <output id="decay-value"></output>
-        </label>
-        <label class="slider">
-          <span>Sustain</span>
-          <input id="sustain" type="range" min="0" max="1" step="0.01" />
-          <output id="sustain-value"></output>
-        </label>
-        <label class="slider">
-          <span>Release</span>
-          <input id="release" type="range" min="0.001" max="3" step="0.001" />
-          <output id="release-value"></output>
-        </label>
+    <main class="workspace">
+      <section class="panel sequencer" aria-label="Sequencer" data-i18n-label="sequencer.label">
+        <div class="transport">
+          <button id="play" type="button" aria-pressed="false">Play</button>
+          <button id="gate" type="button" aria-pressed="false" data-i18n="transport.gate">
+            Hold to play
+          </button>
+          <button id="clear" type="button" data-i18n="transport.clear">Clear</button>
+          <label class="voices">
+            <span data-i18n="transport.voices">Voices</span>
+            <select id="voices">
+              <option value="1" data-i18n="transport.mono">1 (mono)</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="8">8</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint" data-i18n="pianoRoll.hint"></p>
+        <div class="piano-roll-scroll">
+          <canvas id="piano-roll"></canvas>
+        </div>
       </section>
 
-      <button id="gate" type="button" aria-pressed="false">Hold to play</button>
+      <section class="panel rack-panel" aria-label="Rack" data-i18n-label="rack.label">
+        <div class="rack-toolbar">
+          <select id="add-module" aria-label="Add module" data-i18n-label="rack.addLabel">
+            <option value="" data-i18n="rack.add">+ Add module…</option>
+          </select>
+          <p class="hint" data-i18n="rack.hint"></p>
+        </div>
+        <div class="rack-scroll">
+          <div id="rack" class="rack"></div>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
