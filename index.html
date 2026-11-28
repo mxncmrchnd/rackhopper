@@ -40,7 +40,11 @@
       <button id="share-project" class="topbar-button" type="button" data-i18n="project.share">
         Share link
       </button>
+      <button id="import-midi" class="topbar-button" type="button" data-i18n="project.importMidi">
+        Import MIDI…
+      </button>
       <input id="project-file" type="file" accept=".json,application/json" hidden />
+      <input id="midi-file" type="file" accept=".mid,.midi,audio/midi" hidden />
     </nav>
     <span id="status" class="status" role="status" aria-live="polite"></span>
     <!-- Segmented toggles (controls, theme, language) are added here by main.ts. -->
@@ -52,7 +56,12 @@
       <div class="transport">
         <button id="play" type="button" aria-pressed="false">Play</button>
         <button id="clear" type="button" data-i18n="transport.clear">Clear</button>
-        <label class="voices">
+        <button id="quantize" type="button" data-i18n="transport.quantize">Quantize</button>
+        <label class="field">
+          <span data-i18n="transport.bars">Bars</span>
+          <input id="bars" type="number" min="1" max="64" step="1" value="4" />
+        </label>
+        <label class="field">
           <span data-i18n="transport.voices">Voices</span>
           <select id="voices">
             <option value="1" data-i18n="transport.mono">1 (mono)</option>
@@ -63,6 +72,10 @@
             <option value="8">8</option>
           </select>
         </label>
+        <div class="zoom">
+          <button id="zoom-out" type="button" aria-label="Zoom out" data-i18n-label="pianoRoll.zoomOut">−</button>
+          <button id="zoom-in" type="button" aria-label="Zoom in" data-i18n-label="pianoRoll.zoomIn">+</button>
+        </div>
       </div>
       <p class="hint" data-i18n="pianoRoll.hint"></p>
       <div class="piano-roll-scroll">

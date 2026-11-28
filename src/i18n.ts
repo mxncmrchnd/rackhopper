@@ -20,6 +20,7 @@ const en = {
   'project.open': 'Open…',
   'project.save': 'Save',
   'project.share': 'Share link',
+  'project.importMidi': 'Import MIDI…',
   'toggle.controls': 'Control style',
   'toggle.sliders': 'Sliders',
   'toggle.knobs': 'Knobs',
@@ -36,8 +37,13 @@ const en = {
   'transport.clearConfirm': 'Click again to clear',
   'transport.voices': 'Voices',
   'transport.mono': '1 (mono)',
+  'transport.bars': 'Bars',
+  'transport.quantize': 'Quantize',
+  'transport.quantizeHint': 'Snap every note to the 16th-note grid',
+  'pianoRoll.zoomIn': 'Zoom in',
+  'pianoRoll.zoomOut': 'Zoom out',
   'pianoRoll.hint':
-    'Click to add a note · drag to move · drag the right edge to resize · right-click (or click) a note to delete it',
+    'Click to add a note · drag to move · drag the right edge to resize · right-click (or click) a note to delete it · Ctrl + wheel to zoom',
 
   // Rack panel
   'rack.label': 'Rack',
@@ -58,6 +64,9 @@ const en = {
   'status.badLink': 'Could not open this link.',
   'status.linkCopied': 'Link copied to the clipboard',
   'status.copyFromBar': 'Copy the link from the address bar',
+  'status.midiImported': 'Imported {name}: {count} notes, {bars} bars',
+  'status.midiTruncated': '{name} is {bars} bars long: only the first {max} bars were imported.',
+  'status.invalidMidi': '{name} could not be read as a MIDI file.',
 
   // Project errors
   'error.notProject': 'This is not a rackhopper project.',
@@ -68,6 +77,11 @@ const en = {
   'error.connection': 'A connection entry is malformed.',
   'error.note': 'A note entry is malformed.',
   'error.damagedLink': 'This link is damaged or incomplete.',
+  'error.bars': 'The loop length must be a whole number of bars from 1 to 64.',
+  'error.notMidi': 'This is not a MIDI file.',
+  'error.midiSmpte': "This MIDI file uses SMPTE timing, which isn't supported.",
+  'error.midiNoNotes': 'This MIDI file has no notes (drum tracks are left out).',
+  'error.midiCorrupt': 'This MIDI file is damaged or incomplete.',
 
   // Module titles, by module type
   'module.sequencer': 'Sequencer',
@@ -139,6 +153,7 @@ const fr: Record<MessageKey, string> = {
   'project.open': 'Ouvrir…',
   'project.save': 'Enregistrer',
   'project.share': 'Partager le lien',
+  'project.importMidi': 'Importer MIDI…',
   'toggle.controls': 'Style des contrôles',
   'toggle.sliders': 'Curseurs',
   'toggle.knobs': 'Boutons rotatifs',
@@ -154,8 +169,13 @@ const fr: Record<MessageKey, string> = {
   'transport.clearConfirm': 'Cliquer à nouveau pour effacer',
   'transport.voices': 'Voix',
   'transport.mono': '1 (mono)',
+  'transport.bars': 'Mesures',
+  'transport.quantize': 'Quantifier',
+  'transport.quantizeHint': 'Caler toutes les notes sur la grille des doubles croches',
+  'pianoRoll.zoomIn': 'Zoom avant',
+  'pianoRoll.zoomOut': 'Zoom arrière',
   'pianoRoll.hint':
-    'Cliquer pour ajouter une note · glisser pour la déplacer · glisser le bord droit pour la redimensionner · clic droit (ou clic) sur une note pour la supprimer',
+    'Cliquer pour ajouter une note · glisser pour la déplacer · glisser le bord droit pour la redimensionner · clic droit (ou clic) sur une note pour la supprimer · Ctrl + molette pour zoomer',
 
   'rack.label': 'Rack',
   'rack.add': '+ Ajouter un module…',
@@ -176,6 +196,9 @@ const fr: Record<MessageKey, string> = {
   'status.badLink': "Impossible d'ouvrir ce lien.",
   'status.linkCopied': 'Lien copié dans le presse-papiers',
   'status.copyFromBar': "Copiez le lien depuis la barre d'adresse",
+  'status.midiImported': '{name} importé : {count} notes, {bars} mesures',
+  'status.midiTruncated': '{name} fait {bars} mesures : seules les {max} premières ont été importées.',
+  'status.invalidMidi': "{name} n'a pas pu être lu comme fichier MIDI.",
 
   'error.notProject': "Ce n'est pas un projet rackhopper.",
   'error.version': 'Version de projet non prise en charge : {version}.',
@@ -185,6 +208,11 @@ const fr: Record<MessageKey, string> = {
   'error.connection': 'Une entrée de connexion est invalide.',
   'error.note': 'Une entrée de note est invalide.',
   'error.damagedLink': 'Ce lien est endommagé ou incomplet.',
+  'error.bars': 'La longueur de la boucle doit être un nombre entier de mesures, de 1 à 64.',
+  'error.notMidi': "Ce n'est pas un fichier MIDI.",
+  'error.midiSmpte': "Ce fichier MIDI utilise une base de temps SMPTE, qui n'est pas prise en charge.",
+  'error.midiNoNotes': "Ce fichier MIDI ne contient aucune note (les pistes de batterie sont ignorées).",
+  'error.midiCorrupt': 'Ce fichier MIDI est endommagé ou incomplet.',
 
   'module.sequencer': 'Séquenceur',
   'module.vco': 'VCO',
@@ -290,6 +318,30 @@ export function tDynamic(key: string, fallback: string): string {
   // and makes the result `string | undefined`, so we must handle "missing".
   const dictionary: Partial<Record<string, string>> = dictionaries[current]
   return dictionary[key] ?? fallback
+}
+
+/**
+ * An error whose message can be shown in the current UI language. It carries a
+ * translation key; the Error's own `message` (seen in the console) is in English.
+ * ProjectError and MidiError extend it.
+ */
+export class LocalizedError extends Error {
+  // Declared as fields rather than as `constructor(readonly key ...)`
+  // "parameter properties": the tsconfig option `erasableSyntaxOnly` forbids
+  // those, because they aren't plain JavaScript with the types removed.
+  readonly key: MessageKey
+  readonly params: Params
+
+  constructor(key: MessageKey, params: Params = {}) {
+    super(tIn('en', key, params))
+    this.key = key
+    this.params = params
+  }
+
+  /** The message in the current UI language. */
+  translated(): string {
+    return t(this.key, this.params)
+  }
 }
 
 /** The browser's preferred language, if we have it, else English. */

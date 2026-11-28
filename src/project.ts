@@ -1,6 +1,6 @@
-import { t, tIn, type MessageKey } from './i18n.ts'
+import { LocalizedError } from './i18n.ts'
 import { isValueControl } from './modules/controls.ts'
-import type { Note } from './notes.ts'
+import { MAX_BARS, type Note, type Song } from './notes.ts'
 import type { Connection, Patch, PortRef } from './patch.ts'
 
 // Saving and loading: the whole project as plain JSON.
@@ -12,9 +12,14 @@ import type { Connection, Patch, PortRef } from './patch.ts'
 //
 // Saved modules keep the id they had ("vco-1"), but loading builds new modules
 // with fresh ids, so connections are remapped from old ids to new ones.
+//
+// Versions:
+//   1: the first format (the loop was always 4 bars)
+//   2: adds `bars`, the loop length
+// Older versions are upgraded when loaded ("migrated"); see parseProject.
 
 export const PROJECT_FORMAT = 'rackhopper'
-export const PROJECT_VERSION = 1
+export const PROJECT_VERSION = 2
 
 /** A control value: a number for knobs/sliders, a string for dropdowns. */
 export type ControlValue = number | string
@@ -35,10 +40,11 @@ export interface SavedProject {
   modules: SavedModule[]
   connections: Connection[]
   notes: Note[]
+  bars: number
 }
 
 /** Snapshot the current project as plain data. */
-export function serializeProject(patch: Patch, notes: readonly Note[]): SavedProject {
+export function serializeProject(patch: Patch, song: Song): SavedProject {
   return {
     format: PROJECT_FORMAT,
     version: PROJECT_VERSION,
@@ -52,7 +58,8 @@ export function serializeProject(patch: Patch, notes: readonly Note[]): SavedPro
       controls: Object.fromEntries(m.controls.filter(isValueControl).map((c) => [c.id, c.get()])),
     })),
     connections: patch.connections.map((c) => ({ from: { ...c.from }, to: { ...c.to } })),
-    notes: notes.map((n) => ({ ...n })),
+    notes: song.notes.map((n) => ({ ...n })),
+    bars: song.bars,
   }
 }
 
@@ -63,29 +70,8 @@ export function serializeProject(patch: Patch, notes: readonly Note[]): SavedPro
 // prove what it is before using it". The type guards below do that proving:
 // each one checks at runtime, and tells TypeScript what it found.
 
-/**
- * Thrown for a file or link that isn't a valid project. It carries a
- * translation key, so the UI can show the message in the current language;
- * the Error's own `message` (seen in the console) is in English.
- */
-export class ProjectError extends Error {
-  // Declared as fields rather than as `constructor(readonly key ...)`
-  // "parameter properties": the tsconfig option `erasableSyntaxOnly` forbids
-  // those, because they aren't plain JavaScript with the types removed.
-  readonly key: MessageKey
-  readonly params: Record<string, string>
-
-  constructor(key: MessageKey, params: Record<string, string> = {}) {
-    super(tIn('en', key, params))
-    this.key = key
-    this.params = params
-  }
-
-  /** The message in the current UI language. */
-  translated(): string {
-    return t(this.key, this.params)
-  }
-}
+/** Thrown for a file or link that isn't a valid project (with a translatable message). */
+export class ProjectError extends LocalizedError {}
 
 // `v is Record<string, unknown>`: a type predicate. When it returns true,
 // TypeScript lets us read properties of `v`.
@@ -158,7 +144,7 @@ export function parseProject(data: unknown): SavedProject {
   if (!isRecord(data) || data.format !== PROJECT_FORMAT) {
     throw new ProjectError('error.notProject')
   }
-  if (data.version !== PROJECT_VERSION) {
+  if (data.version !== 1 && data.version !== PROJECT_VERSION) {
     throw new ProjectError('error.version', { version: String(data.version) })
   }
   if (!Number.isInteger(data.voices) || (data.voices as number) < 1 || (data.voices as number) > 8) {
@@ -167,13 +153,19 @@ export function parseProject(data: unknown): SavedProject {
   if (!Array.isArray(data.modules) || !Array.isArray(data.connections) || !Array.isArray(data.notes)) {
     throw new ProjectError('error.missing')
   }
+  // Migration: version 1 had no `bars`; its loop was always 4 bars long.
+  const bars = data.version === 1 ? 4 : data.bars
+  if (!Number.isInteger(bars) || (bars as number) < 1 || (bars as number) > MAX_BARS) {
+    throw new ProjectError('error.bars')
+  }
   return {
     format: PROJECT_FORMAT,
-    version: PROJECT_VERSION,
+    version: PROJECT_VERSION, // whatever was loaded, it's now in the current format
     voices: data.voices as number,
     modules: data.modules.map(parseModule),
     connections: data.connections.map(parseConnection),
     notes: data.notes.map(parseNote),
+    bars: bars as number,
   }
 }
 

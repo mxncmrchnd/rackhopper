@@ -1,4 +1,4 @@
-import type { Note } from '../notes.ts'
+import type { Song } from '../notes.ts'
 import { Adsr } from './adsr.ts'
 import { Chorus } from './chorus.ts'
 import { Compressor } from './compressor.ts'
@@ -21,7 +21,7 @@ import { Vco } from './vco.ts'
 /** What a module needs to be built. */
 export interface ModuleEnv {
   ctx: BaseAudioContext
-  notes: Note[]
+  song: Song
 }
 
 export interface ModuleInfo {
@@ -46,7 +46,7 @@ export const MODULE_TYPES = {
     title: 'Sequencer',
     singleton: true,
     permanent: true,
-    create: ({ ctx, notes }) => new Sequencer(ctx, notes),
+    create: ({ ctx, song }) => new Sequencer(ctx, song),
   },
   vco: { title: 'VCO', create: ({ ctx }) => new Vco(ctx) },
   lfo: { title: 'LFO', create: ({ ctx }) => new Lfo(ctx) },

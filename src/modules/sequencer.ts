@@ -1,4 +1,4 @@
-import type { Note } from '../notes.ts'
+import { loopBeats, type Note, type Song } from '../notes.ts'
 import { format, type Control } from './controls.ts'
 import { makeId, times, type Output, type Port, type SynthModule } from './synth-module.ts'
 
@@ -27,7 +27,6 @@ const LOOKAHEAD_SECONDS = 0.1
 const TICK_MS = 25
 const A3 = 57 // MIDI note number for pitch CV 0
 const START_DELAY = 0.05 // seconds of head start, so the first note isn't late
-export const LOOP_BEATS = 16
 
 export type GateHandler = (voice: number, on: boolean, time: number, velocity: number) => void
 
@@ -53,12 +52,11 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
   readonly inputs = {}
   readonly outputs: { pitch: Port<Output> } = { pitch: { channels: [] } }
   readonly controls: readonly Control[]
-  readonly loopBeats = LOOP_BEATS
 
   onGate: GateHandler = () => {}
 
   private readonly ctx: BaseAudioContext
-  private readonly notes: Note[]
+  private readonly song: Song
   private sources: ConstantSourceNode[] = []
   private voices: VoiceState[] = []
   private bpm = 120
@@ -72,9 +70,9 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
   /** Everything before this beat has been scheduled already. */
   private scheduledUntil = 0
 
-  constructor(ctx: BaseAudioContext, notes: Note[]) {
+  constructor(ctx: BaseAudioContext, song: Song) {
     this.ctx = ctx
-    this.notes = notes // shared with the piano roll, not copied
+    this.song = song // shared with the piano roll, not copied
     this.setVoices(1)
 
     this.controls = [
@@ -136,7 +134,7 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
   currentBeat(): number | null {
     if (!this.playing) return null
     const beat = this.beatAt(this.ctx.currentTime)
-    return beat < 0 ? null : beat % this.loopBeats
+    return beat < 0 ? null : beat % loopBeats(this.song)
   }
 
   dispose(): void {
@@ -192,7 +190,7 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
   private releaseDeletedNotes(): void {
     const now = this.ctx.currentTime
     this.voices.forEach((voice, i) => {
-      if (voice.note && !this.notes.includes(voice.note)) {
+      if (voice.note && !this.song.notes.includes(voice.note)) {
         this.voices[i] = { note: null, since: this.beatAt(now) }
         this.onGate(i, false, now, 0)
       }
@@ -202,13 +200,16 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
   /** Note starts and ends with `from <= beat < to`, sorted by time. */
   private eventsBetween(from: number, to: number): NoteEvent[] {
     const events: NoteEvent[] = []
+    const length = loopBeats(this.song) // read every time: the length can change while playing
     // The window can span a loop boundary, so check each loop repeat it touches.
     // Starting one repeat early catches notes that end after the loop point.
-    const firstRepeat = Math.floor(from / this.loopBeats) - 1
-    const lastRepeat = Math.floor(to / this.loopBeats)
+    const firstRepeat = Math.floor(from / length) - 1
+    const lastRepeat = Math.floor(to / length)
     for (let repeat = firstRepeat; repeat <= lastRepeat; repeat++) {
-      const offset = repeat * this.loopBeats
-      for (const note of this.notes) {
+      const offset = repeat * length
+      for (const note of this.song.notes) {
+        // Notes past the end (left over after shortening the loop) don't play.
+        if (note.startBeat >= length) continue
         const on = offset + note.startBeat
         const off = on + note.durationBeats
         if (on >= from && on < to) events.push({ beat: on, on: true, note })

@@ -11,6 +11,33 @@ export interface Note {
   velocity: number
 }
 
+export const BEATS_PER_BAR = 4 // the grid is always 4/4
+export const MAX_BARS = 64
+
+/**
+ * The melody and its loop length. One Song object is shared (by reference) by
+ * the sequencer, the piano roll and main.ts, so a change made by any of them is
+ * seen by all: edit it in place, never replace it.
+ */
+export interface Song {
+  notes: Note[]
+  bars: number
+}
+
+export function loopBeats(song: Song): number {
+  return song.bars * BEATS_PER_BAR
+}
+
+/** Snap every note to a grid (in beats): starts to the nearest step, lengths to at least one step. */
+export function quantize(notes: Note[], step: number): void {
+  for (const note of notes) {
+    const start = Math.round(note.startBeat / step) * step
+    const end = Math.round((note.startBeat + note.durationBeats) / step) * step
+    note.startBeat = start
+    note.durationBeats = Math.max(step, end - start)
+  }
+}
+
 /** MIDI note number -> name, e.g. 60 -> "C4". */
 export function noteName(pitch: number): string {
   const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']

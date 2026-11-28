@@ -2,6 +2,7 @@ import './style.css'
 import {
   applyStaticTranslations,
   detectLanguage,
+  LocalizedError,
   getLanguage,
   onLanguageChange,
   setLanguage,
@@ -19,15 +20,15 @@ import {
   moduleInfo,
   type ModuleType,
 } from './modules/registry.ts'
-import { LOOP_BEATS, Sequencer } from './modules/sequencer.ts'
+import { Sequencer } from './modules/sequencer.ts'
 import type { SynthModule } from './modules/synth-module.ts'
 import { Vca } from './modules/vca.ts'
 import { Vco } from './modules/vco.ts'
-import { defaultMelody } from './notes.ts'
+import { importMidi } from './midi.ts'
+import { defaultMelody, MAX_BARS, quantize, type Song } from './notes.ts'
 import { Patch } from './patch.ts'
 import {
   parseProject,
-  ProjectError,
   projectFromHash,
   projectToHash,
   serializeProject,
@@ -56,6 +57,12 @@ import { ICONS, SegmentedToggle } from './ui/toggle.ts'
 
 const playButton = mustFind<HTMLButtonElement>('#play')
 const clearButton = mustFind<HTMLButtonElement>('#clear')
+const quantizeButton = mustFind<HTMLButtonElement>('#quantize')
+const barsInput = mustFind<HTMLInputElement>('#bars')
+const zoomInButton = mustFind<HTMLButtonElement>('#zoom-in')
+const zoomOutButton = mustFind<HTMLButtonElement>('#zoom-out')
+const importMidiButton = mustFind<HTMLButtonElement>('#import-midi')
+const midiFileInput = mustFind<HTMLInputElement>('#midi-file')
 const voicesSelect = mustFind<HTMLSelectElement>('#voices')
 const addModuleSelect = mustFind<HTMLSelectElement>('#add-module')
 const togglesElement = mustFind<HTMLElement>('#toggles')
@@ -68,8 +75,9 @@ const statusElement = mustFind<HTMLElement>('#status')
 const rackElement = mustFind<HTMLElement>('#rack')
 const pianoRollCanvas = mustFind<HTMLCanvasElement>('#piano-roll')
 
-// The melody is shared by the sequencer and the piano roll.
-const notes = defaultMelody()
+// The melody and loop length, shared (by reference) by the sequencer and the
+// piano roll. Always edit it in place; see replaceSong.
+const song: Song = { notes: defaultMelody(), bars: 4 }
 
 // Autoplay policy: a page may *create* an AudioContext at any time, but it
 // starts "suspended" (silent) until it's resumed from a user gesture. So we
@@ -113,7 +121,7 @@ function prepare(module: SynthModule): void {
 function buildDefaultPatch(): void {
   // patch.add returns the module with its own type (Vco, Filter, ...), so the
   // connect calls below are checked against each module's real port names.
-  const sequencer = patch.add(new Sequencer(ctx, notes), { col: 0, row: 0 })
+  const sequencer = patch.add(new Sequencer(ctx, song), { col: 0, row: 0 })
   const vco = patch.add(new Vco(ctx), { col: 1, row: 0 }) // 220 Hz = A3 = pitch CV 0
   const filter = patch.add(new Filter(ctx), { col: 2, row: 0 })
   const vca = patch.add(new Vca(ctx), { col: 3, row: 0 })
@@ -265,7 +273,7 @@ refreshAddMenu()
 function addModule(type: ModuleType): void {
   const slot = patch.firstFreeSlot()
   if (!slot) return
-  const module = MODULE_TYPES[type].create({ ctx, notes })
+  const module = MODULE_TYPES[type].create({ ctx, song })
   prepare(module)
   patch.add(module, slot)
   rack.addPanel(module)
@@ -286,11 +294,39 @@ rack.onModuleRemoved = (module) => {
 
 // --- Piano roll and transport ---------------------------------------------------
 
-new PianoRoll(pianoRollCanvas, notes, {
-  loopBeats: LOOP_BEATS,
+const pianoRoll = new PianoRoll(pianoRollCanvas, song, {
   // `?.` and `??`: no sequencer -> undefined -> null (no playhead).
   playhead: () => currentSequencer()?.currentBeat() ?? null,
 })
+
+zoomInButton.addEventListener('click', () => pianoRoll.zoomIn())
+zoomOutButton.addEventListener('click', () => pianoRoll.zoomOut())
+
+/**
+ * Replace the song's contents (notes and length) with another song's, in
+ * place: the sequencer and piano roll keep the same Song object.
+ */
+function replaceSong(next: Song): void {
+  // splice(0, length, ...items) swaps the whole contents of the array in place.
+  // `song.notes = next.notes` (a new array) wouldn't reach the sequencer.
+  // Sounding notes that disappear are released by the sequencer on its next tick.
+  song.notes.splice(0, song.notes.length, ...next.notes)
+  song.bars = next.bars
+  barsInput.value = String(song.bars)
+  pianoRoll.scrollToStart()
+}
+
+// Loop length. Notes past a shortened end are kept (lengthen it again and
+// they're back), but they don't play or show.
+barsInput.addEventListener('change', () => {
+  const bars = Math.round(barsInput.valueAsNumber)
+  // valueAsNumber is NaN for an empty or invalid entry; keep the old length then.
+  song.bars = Number.isNaN(bars) ? song.bars : Math.min(MAX_BARS, Math.max(1, bars))
+  barsInput.value = String(song.bars)
+})
+
+quantizeButton.title = t('transport.quantizeHint')
+quantizeButton.addEventListener('click', () => quantize(song.notes, 0.25))
 
 function showPlaying(playing: boolean): void {
   playButton.textContent = t(playing ? 'transport.stop' : 'transport.play')
@@ -337,9 +373,9 @@ function confirmOnSecondClick(
 
 confirmOnSecondClick(clearButton, 'transport.clear', 'transport.clearConfirm', () => {
   // splice(0) empties the array *in place*: the sequencer and piano roll hold
-  // this same array, so `notes = []` (a new array) wouldn't reach them.
+  // this same array, so `song.notes = []` (a new array) wouldn't reach them.
   // Sounding notes are released by the sequencer on its next tick.
-  notes.splice(0)
+  song.notes.splice(0)
 })
 
 voicesSelect.addEventListener('change', () => {
@@ -407,7 +443,7 @@ function loadProject(project: SavedProject): void {
     // Use the saved slot if it's free, otherwise the first free one.
     const slot = patch.isFree(saved) ? { col: saved.col, row: saved.row } : patch.firstFreeSlot()
     if (!slot) break // rack full
-    const module = info.create({ ctx, notes })
+    const module = info.create({ ctx, song })
     prepare(module)
     patch.add(module, slot)
     applyControls(module, saved.controls)
@@ -425,15 +461,14 @@ function loadProject(project: SavedProject): void {
     }
   }
 
-  // Replace the notes in place (the sequencer and piano roll share this array).
-  notes.splice(0, notes.length, ...project.notes)
+  replaceSong({ notes: project.notes, bars: project.bars })
   rack.refresh()
   refreshAddMenu()
   console.log('patch:', patch.toJSON())
 }
 
 function currentProject(): SavedProject {
-  return serializeProject(patch, notes)
+  return serializeProject(patch, song)
 }
 
 // Autosave: every second, store the project in localStorage if it changed.
@@ -470,7 +505,7 @@ async function loadFromHash(): Promise<boolean> {
     showStatus(t('status.openedShared'))
     return true
   } catch (error) {
-    showStatus(error instanceof ProjectError ? error.translated() : t('status.badLink'), true)
+    showStatus(error instanceof LocalizedError ? error.translated() : t('status.badLink'), true)
     return false
   } finally {
     // Drop the hash from the address bar: from now on the project lives in
@@ -485,7 +520,7 @@ confirmOnSecondClick(newButton, 'project.new', 'project.newConfirm', () => {
   patch.setVoices(1)
   showVoices(1)
   buildDefaultPatch()
-  notes.splice(0, notes.length, ...defaultMelody())
+  replaceSong({ notes: defaultMelody(), bars: 4 })
   rack.refresh()
   refreshAddMenu()
 })
@@ -514,7 +549,37 @@ fileInput.addEventListener('change', async () => {
   } catch (error) {
     // JSON.parse throws a SyntaxError for files that aren't JSON at all.
     showStatus(
-      error instanceof ProjectError ? error.translated() : t('status.invalidFile', { name: file.name }),
+      error instanceof LocalizedError ? error.translated() : t('status.invalidFile', { name: file.name }),
+      true,
+    )
+  }
+})
+
+// Import MIDI: replaces the notes, length and tempo; the rack is left as it is.
+importMidiButton.addEventListener('click', () => midiFileInput.click())
+midiFileInput.addEventListener('change', async () => {
+  const file = midiFileInput.files?.[0]
+  midiFileInput.value = ''
+  if (!file) return
+  try {
+    const result = importMidi(await file.arrayBuffer())
+    replaceSong(result.song)
+    const tempo = currentSequencer()?.controls.find((c) => c.id === 'tempo')
+    if (result.bpm !== null && tempo?.kind === 'slider') {
+      tempo.set(Math.min(tempo.max, Math.max(tempo.min, Math.round(result.bpm))))
+      rack.refresh() // show the new tempo on the sequencer's knob
+    }
+    if (result.truncatedFrom !== null) {
+      // Too long: say so clearly (in red, and it stays up longer).
+      showStatus(t('status.midiTruncated', { name: file.name, bars: result.truncatedFrom, max: MAX_BARS }), true)
+    } else {
+      showStatus(
+        t('status.midiImported', { name: file.name, count: result.song.notes.length, bars: result.song.bars }),
+      )
+    }
+  } catch (error) {
+    showStatus(
+      error instanceof LocalizedError ? error.translated() : t('status.invalidMidi', { name: file.name }),
       true,
     )
   }

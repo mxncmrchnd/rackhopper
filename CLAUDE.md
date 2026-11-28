@@ -110,6 +110,16 @@ penguin hopping along a patch cable between two jacks.
   Gates are not cables: they're JS calls (`onGate`) that main.ts sends to every ADSR,
   and they must arrive in time order (the ADSR relies on it).
 - Piano roll data: `{ pitch, startBeat, durationBeats, velocity }[]`, independent of drawing.
+  It lives in a shared `Song` (`{ notes, bars }`, `src/notes.ts`; 1..64 bars, 4/4) passed by
+  reference to the sequencer and piano roll: edit it in place (`replaceSong` in main.ts),
+  never reassign. Notes past a shortened loop are kept but don't play or show.
+- Piano roll draws only the visible window: the canvas is container-sized and
+  `position: sticky`; an absolutely positioned sizer gives the native scrollbars.
+  Keyboard column and bar ruler are fixed; zoom = beat width (buttons, Ctrl+wheel).
+- MIDI import (`src/midi.ts`): hand-written SMF parser (DataView, variable-length
+  quantities, running status). All tracks merged, channel 10 (drums) dropped, first tempo
+  used, time signatures ignored, pitches folded by octaves into C1..B7, cut at 64 bars
+  with a warning. Quantize snaps to 1/16. Errors extend `LocalizedError` (`src/i18n.ts`).
 - Autoplay policy: the `AudioContext` is created at page load (it starts suspended) so the
   UI can be built right away, and resumed on the first pointerdown/keydown on the page
   (Play also calls `resume()`). There is no Power button.

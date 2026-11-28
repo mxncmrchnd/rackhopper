@@ -619,11 +619,35 @@ select {
   color: var(--accent-alt);
 }
 
-.voices {
+/* A label + small input pair in the transport (Bars, Voices). */
+.field {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.875rem;
+}
+
+.field input[type='number'] {
+  width: 3.5rem;
+  font: inherit;
+  padding: 0.15rem 0.3rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.zoom {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto; /* to the right end of the transport row */
+}
+
+.zoom button {
+  width: 2.25rem;
+  padding: 0.3rem 0;
+  font-size: 1.125rem;
+  line-height: 1;
 }
 
 .hint {
@@ -632,9 +656,11 @@ select {
   color: var(--text-muted);
 }
 
-/* The piano roll fills the rest of the panel; the canvas sizes itself to this
-   box (see PianoRoll.resize) and it scrolls if the canvas hits its minimum size. */
+/* The piano roll fills the rest of the panel. The canvas is the size of this
+   box and stays in view (sticky) while it scrolls; the invisible sizer, as big
+   as the whole song, is what gives the box its scrollbars. See piano-roll.ts. */
 .piano-roll-scroll {
+  position: relative; /* containing block for the sizer */
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -643,6 +669,16 @@ select {
 }
 
 #piano-roll {
+  position: sticky;
+  top: 0;
+  left: 0;
   display: block;
   touch-action: none; /* editing notes shouldn't scroll the page */
+}
+
+.piano-roll-sizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
