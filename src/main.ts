@@ -12,12 +12,11 @@ import {
 } from './i18n.ts'
 import { Adsr } from './modules/adsr.ts'
 import { Filter } from './modules/filter.ts'
-import { Lfo } from './modules/lfo.ts'
 import { Output } from './modules/output.ts'
 import {
   isModuleType,
   MODULE_TYPES,
-  type ModuleInfo,
+  moduleInfo,
   type ModuleType,
 } from './modules/registry.ts'
 import { LOOP_BEATS, Sequencer } from './modules/sequencer.ts'
@@ -41,16 +40,20 @@ import { PianoRoll } from './ui/piano-roll.ts'
 import { RackView } from './ui/rack.ts'
 import { ICONS, SegmentedToggle } from './ui/toggle.ts'
 
-// Default patch, laid out on two rows of the rack grid:
+// Default patch: a simple pluck, laid out on two rows of the rack grid:
 //
 //   [Sequencer] [VCO] [Filter] [VCA]  [Output]
-//                     [LFO]    [ADSR]
+//                              [ADSR]
 //
 //   Sequencer pitch -> VCO pitch   (gates go to every ADSR, see onGate)
 //   VCO -> Filter -> VCA -> Output
-//   ADSR -> VCA gain,  LFO -> Filter cutoff
+//   ADSR -> VCA gain and Filter cutoff
+//
+// What makes it a pluck: the envelope has a near-instant attack, a short decay
+// and no sustain, so each note is a quick "pling" that dies away on its own.
+// The same envelope also sweeps the filter's cutoff, so the note starts bright
+// and gets duller as it fades, like a plucked string.
 
-const gateButton = mustFind<HTMLButtonElement>('#gate')
 const playButton = mustFind<HTMLButtonElement>('#play')
 const clearButton = mustFind<HTMLButtonElement>('#clear')
 const voicesSelect = mustFind<HTMLSelectElement>('#voices')
@@ -115,16 +118,20 @@ function buildDefaultPatch(): void {
   const filter = patch.add(new Filter(ctx), { col: 2, row: 0 })
   const vca = patch.add(new Vca(ctx), { col: 3, row: 0 })
   const output = patch.add(new Output(ctx), { col: 4, row: 0 })
-  const lfo = patch.add(new Lfo(ctx), { col: 2, row: 1 })
   const adsr = patch.add(new Adsr(ctx), { col: 3, row: 1 })
   prepare(sequencer)
+
+  // Knob settings, by control id (the same helper that applies saved projects).
+  applyControls(adsr, { attack: 0.002, decay: 0.35, sustain: 0, release: 0.3 })
+  // Dark at rest (300 Hz); a full envelope opens it 4 octaves (to ~4.8 kHz).
+  applyControls(filter, { cutoff: 300, resonance: 2, mod: 4 })
 
   patch.connect(sequencer, 'pitch', vco, 'pitch')
   patch.connect(vco, 'out', filter, 'in')
   patch.connect(filter, 'out', vca, 'in')
   patch.connect(vca, 'out', output, 'in')
   patch.connect(adsr, 'out', vca, 'gain')
-  patch.connect(lfo, 'out', filter, 'cutoff')
+  patch.connect(adsr, 'out', filter, 'cutoff')
 }
 
 buildDefaultPatch()
@@ -242,9 +249,7 @@ function refreshAddMenu(): void {
   addModuleSelect.disabled = full
   for (const option of addModuleSelect.options) {
     if (!isModuleType(option.value)) continue // the "Add module…" placeholder
-    // Widen to ModuleInfo: on the exact registry type, entries without
-    // `singleton` don't have that property at all, so reading it wouldn't compile.
-    const info: ModuleInfo = MODULE_TYPES[option.value]
+    const info = moduleInfo(option.value)
     option.textContent = tDynamic(`module.${option.value}`, info.title)
     option.disabled = info.singleton === true && patch.modules.some((m) => m.type === option.value)
   }
@@ -391,7 +396,7 @@ function loadProject(project: SavedProject): void {
       console.warn(`Skipping unknown module type "${saved.type}"`)
       continue
     }
-    const info: ModuleInfo = MODULE_TYPES[saved.type]
+    const info = moduleInfo(saved.type)
     if (info.singleton && patch.modules.some((m) => m.type === saved.type)) continue
     // Use the saved slot if it's free, otherwise the first free one.
     const slot = patch.isFree(saved) ? { col: saved.col, row: saved.row } : patch.firstFreeSlot()
@@ -541,48 +546,3 @@ async function restore(): Promise<void> {
   })
 }
 void restore()
-
-// --- Gate button: hold it down to play the note ---------------------------------
-
-// The button plays voice 0, at whatever pitch the sequencer last gave it.
-let gateIsOn = false
-
-async function gateOn(): Promise<void> {
-  if (gateIsOn) return
-  gateIsOn = true
-  gateButton.setAttribute('aria-pressed', 'true')
-  // A context can end up "suspended" (e.g. the tab was in the background).
-  await ctx.resume()
-  // The button may have been released while we were awaiting.
-  if (!gateIsOn) return
-  for (const env of envelopes()) env.gateOn(0, ctx.currentTime)
-}
-
-function gateOff(): void {
-  if (!gateIsOn) return
-  gateIsOn = false
-  gateButton.setAttribute('aria-pressed', 'false')
-  for (const env of envelopes()) env.gateOff(0, ctx.currentTime)
-}
-
-// Pointer events cover mouse, touch and pen with one API.
-gateButton.addEventListener('pointerdown', (event) => {
-  // Keep receiving pointer events even if the pointer slides off the button,
-  // so we always get the pointerup and the note doesn't hang.
-  gateButton.setPointerCapture(event.pointerId)
-  void gateOn() // `void` marks that we're deliberately not awaiting the promise
-})
-gateButton.addEventListener('pointerup', gateOff)
-gateButton.addEventListener('pointercancel', gateOff)
-
-// Keyboard: hold Space or Enter while the button is focused.
-gateButton.addEventListener('keydown', (event) => {
-  if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
-    event.preventDefault() // stop the browser's own "click" behavior
-    void gateOn()
-  }
-})
-gateButton.addEventListener('keyup', (event) => {
-  if (event.key === ' ' || event.key === 'Enter') gateOff()
-})
-gateButton.addEventListener('blur', gateOff) // focus lost mid-note: release

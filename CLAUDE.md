@@ -79,13 +79,18 @@ penguin hopping along a patch cable between two jacks.
   cables, and handles module dragging.
 - Rack: a fixed grid of equal slots (`GRID` in `src/patch.ts`); the patch model stores
   each module's `{ col, row }`. Module types are listed in `src/modules/registry.ts`
-  (used by "Add module", and by save/load later). Only one Sequencer at a time.
+  (used by "Add module" and save/load). Sequencer and Output are `singleton` (one each;
+  several cables into the Output's input are mixed) and `permanent` (no remove button).
 - Polyphony (VCV-style): every port carries one channel per voice (`Port<T>.channels`).
   Poly modules build one copy of their nodes per voice in `setVoices(n)`; mono modules
   (LFO, Output) have one channel. Cable wiring (`channelPairs`): mono out -> all voices,
   poly out -> mono in sums, poly -> poly channel by channel. `Patch.setVoices` unplugs all
   cables, rebuilds, and replugs. Voice count is global (Voices menu in the transport).
 - VCO unison: N detuned oscillators per voice, mixed at 1/sqrt(N).
+- Effects (Delay, Chorus, Reverb) are mono modules meant for the end of the chain
+  (after the VCA): a poly cable into them is summed. They share `DryWet`
+  (`src/modules/dry-wet.ts`, equal-power "Mix" knob). Reverb generates its impulse
+  response (decaying stereo noise) instead of loading a file.
 - Save/load (`src/project.ts`): one versioned JSON format (`SavedProject`: voices,
   modules with `{ id, type, col, row, controls }`, connections, notes) for autosave
   (localStorage, every second if changed), Save/Open (.json file) and Share link
@@ -102,7 +107,7 @@ penguin hopping along a patch cable between two jacks.
 - Piano roll data: `{ pitch, startBeat, durationBeats, velocity }[]`, independent of drawing.
 - Autoplay policy: the `AudioContext` is created at page load (it starts suspended) so the
   UI can be built right away, and resumed on the first pointerdown/keydown on the page
-  (Play and the gate button also call `resume()`). There is no Power button.
+  (Play also calls `resume()`). There is no Power button.
 - OscillatorNodes can only be started once: build voices per note, or keep them running
   and gate through a VCA.
 

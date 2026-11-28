@@ -1,6 +1,7 @@
 import type { SynthModule } from '../modules/synth-module.ts'
 import { GRID, samePort, type GridPosition, type Patch, type PortRef } from '../patch.ts'
 import { t, tDynamic } from '../i18n.ts'
+import { isRemovable } from '../modules/registry.ts'
 import { renderControl, type ControlStyle } from './controls.ts'
 import { el } from './dom.ts'
 
@@ -303,11 +304,15 @@ export class RackView {
     // Translated title, looked up by module type (falls back to the module's own title).
     const title = tDynamic(`module.${module.type}`, module.title)
     const header = el('header', 'module-header')
-    const remove = el('button', 'module-remove', '×')
-    remove.type = 'button'
-    remove.title = t('rack.remove', { name: title })
-    remove.setAttribute('aria-label', remove.title)
-    header.append(el('h2', '', title), remove)
+    header.append(el('h2', '', title))
+    // No x button on modules that must stay (Sequencer, Output).
+    if (isRemovable(module.type)) {
+      const remove = el('button', 'module-remove', '×')
+      remove.type = 'button'
+      remove.title = t('rack.remove', { name: title })
+      remove.setAttribute('aria-label', remove.title)
+      header.append(remove)
+    }
 
     const controls = el('div', `controls controls-${this.controlStyle}`)
     controls.append(...module.controls.map((c) => renderControl(c, this.controlStyle)))

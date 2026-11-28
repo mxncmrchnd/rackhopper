@@ -243,18 +243,11 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
-/* "Active" state, e.g. the gate button while held. */
+/* "Active" state, e.g. the Play button while playing. */
 button[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
-}
-
-/* The gate button is held, not clicked: don't let touch turn it into a scroll
-   or text selection. */
-#gate {
-  touch-action: none;
-  user-select: none;
 }
 
 /* --- Rack ----------------------------------------------------------------- */

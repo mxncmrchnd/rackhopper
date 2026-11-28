@@ -31,7 +31,6 @@ const en = {
   'sequencer.label': 'Sequencer',
   'transport.play': 'Play',
   'transport.stop': 'Stop',
-  'transport.gate': 'Hold to play',
   'transport.clear': 'Clear',
   'transport.clearConfirm': 'Click again to clear',
   'transport.voices': 'Voices',
@@ -76,6 +75,9 @@ const en = {
   'module.filter': 'Filter',
   'module.vca': 'VCA',
   'module.adsr': 'ADSR',
+  'module.delay': 'Delay',
+  'module.chorus': 'Chorus',
+  'module.reverb': 'Reverb',
   'module.output': 'Output',
 
   // Control labels, by control id
@@ -96,6 +98,11 @@ const en = {
   'control.release': 'Release',
   'control.volume': 'Volume',
   'control.tempo': 'Tempo',
+  'control.time': 'Time',
+  'control.feedback': 'Feedback',
+  'control.mix': 'Mix',
+  'control.size': 'Size',
+  'control.tone': 'Tone',
 
   // Dropdown options, by value
   'option.sine': 'Sine',
@@ -128,7 +135,6 @@ const fr: Record<MessageKey, string> = {
   'sequencer.label': 'Séquenceur',
   'transport.play': 'Lecture',
   'transport.stop': 'Stop',
-  'transport.gate': 'Maintenir pour jouer',
   'transport.clear': 'Effacer',
   'transport.clearConfirm': 'Cliquer à nouveau pour effacer',
   'transport.voices': 'Voix',
@@ -171,6 +177,9 @@ const fr: Record<MessageKey, string> = {
   'module.filter': 'Filtre',
   'module.vca': 'VCA',
   'module.adsr': 'ADSR',
+  'module.delay': 'Écho',
+  'module.chorus': 'Chorus',
+  'module.reverb': 'Réverb',
   'module.output': 'Sortie',
 
   'control.wave': 'Onde',
@@ -190,6 +199,11 @@ const fr: Record<MessageKey, string> = {
   'control.release': 'Relâche',
   'control.volume': 'Volume',
   'control.tempo': 'Tempo',
+  'control.time': 'Temps',
+  'control.feedback': 'Réinj.',
+  'control.mix': 'Mélange',
+  'control.size': 'Taille',
+  'control.tone': 'Timbre',
 
   'option.sine': 'Sinus',
   'option.triangle': 'Triangle',

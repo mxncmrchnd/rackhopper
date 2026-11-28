@@ -12,8 +12,7 @@ import { makeId, times, type Output, type Port, type SynthModule } from './synth
 // constant value, set by its `offset` AudioParam. We don't write a custom node;
 // an Envelope schedules automation on that `offset` param.
 //
-// Gates arrive per voice (gateOn(voice, ...)) from the sequencer or the
-// "Hold to play" button.
+// Gates arrive per voice (gateOn(voice, ...)) from the sequencer.
 
 export type { AdsrSettings } // re-exported so callers can import it from here
 
