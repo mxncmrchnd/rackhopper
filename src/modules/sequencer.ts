@@ -130,6 +130,27 @@ export class Sequencer implements SynthModule<never, 'pitch'> {
     })
   }
 
+  /**
+   * For offline rendering (audio export): schedule one whole pass through the
+   * loop at once, starting at audio time `time`, instead of bit by bit on a
+   * timer. An OfflineAudioContext renders as fast as it can, so there's no
+   * "now" to look ahead from; everything has to be scheduled before it starts.
+   */
+  scheduleOnce(time = 0): void {
+    this.anchorTime = time
+    this.anchorBeat = 0
+    for (const voice of this.voices) voice.note = null
+    const length = loopBeats(this.song)
+    for (const event of this.eventsBetween(0, length)) this.dispatch(event)
+    // Notes still held at the loop's end are released there.
+    this.voices.forEach((voice, i) => {
+      if (voice.note) {
+        voice.note = null
+        this.onGate(i, false, this.timeAt(length), 0)
+      }
+    })
+  }
+
   /** Position in the loop (0..loopBeats), or null when stopped. For the playhead. */
   currentBeat(): number | null {
     if (!this.playing) return null

@@ -120,6 +120,11 @@ penguin hopping along a patch cable between two jacks.
   quantities, running status). All tracks merged, channel 10 (drums) dropped, first tempo
   used, time signatures ignored, pitches folded by octaves into C1..B7, cut at 64 bars
   with a warning. Quantize snaps to 1/16. Errors extend `LocalizedError` (`src/i18n.ts`).
+- Audio export (Export WAV): the project is serialized and rebuilt (`buildPatch` in
+  main.ts) inside an `OfflineAudioContext`; `Sequencer.scheduleOnce` schedules one loop
+  pass up front; 8 s tail, trimmed below -80 dB; encoded by hand (`src/wav.ts`, 16-bit
+  PCM, little-endian). Modules must not defer setup with timers or glides when
+  `ctx instanceof OfflineAudioContext` (Reverb rebuilds at once, Delay jumps).
 - Autoplay policy: the `AudioContext` is created at page load (it starts suspended) so the
   UI can be built right away, and resumed on the first pointerdown/keydown on the page
   (Play also calls `resume()`). There is no Power button.

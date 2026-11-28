@@ -59,8 +59,13 @@ export class Delay implements SynthModule<'in', 'out'> {
         get: () => this.time,
         set: (v) => {
           this.time = v
-          // Glide to the new time instead of jumping, which would click.
-          this.delay.delayTime.setTargetAtTime(v, this.ctx.currentTime, 0.05)
+          if (this.ctx instanceof OfflineAudioContext) {
+            // Audio export: settings are applied before rendering starts, so jump straight there.
+            this.delay.delayTime.value = v
+          } else {
+            // Glide to the new time instead of jumping, which would click.
+            this.delay.delayTime.setTargetAtTime(v, this.ctx.currentTime, 0.05)
+          }
         },
       },
       {

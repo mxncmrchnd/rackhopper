@@ -83,18 +83,26 @@ export class Reverb implements SynthModule<'in', 'out'> {
 
   private setSize(size: number): void {
     this.size = size
+    window.clearTimeout(this.rebuildTimer)
+    // Offline (audio export), rendering starts right after the settings are
+    // applied, so a delayed rebuild would come too late: rebuild now.
+    if (this.ctx instanceof OfflineAudioContext) {
+      this.rebuild()
+      return
+    }
     // Generating a new impulse response takes a few milliseconds, too slow to
     // redo on every pixel of a knob drag. So wait until the knob has been still
     // for 150 ms ("debouncing"): each new move cancels the previous timer.
-    window.clearTimeout(this.rebuildTimer)
-    this.rebuildTimer = window.setTimeout(() => {
-      // Swap in a new convolver rather than changing the old one's buffer:
-      // simple, and the old tail is cut off cleanly.
-      const old = this.convolver
-      this.convolver = this.makeConvolver()
-      this.mixer.input.disconnect(old)
-      old.disconnect()
-    }, 150)
+    this.rebuildTimer = window.setTimeout(() => this.rebuild(), 150)
+  }
+
+  private rebuild(): void {
+    // Swap in a new convolver rather than changing the old one's buffer:
+    // simple, and the old tail is cut off cleanly.
+    const old = this.convolver
+    this.convolver = this.makeConvolver()
+    this.mixer.input.disconnect(old)
+    old.disconnect()
   }
 
   /** A ConvolverNode with a fresh impulse response, wired between input and tone. */

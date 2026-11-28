@@ -9,7 +9,7 @@
 // Static text in index.html is marked with data-i18n attributes and filled in
 // by applyStaticTranslations(). Code calls t() directly.
 
-export type Language = 'en' | 'fr'
+export type Language = 'en' | 'fr';
 
 const en = {
   // Top bar
@@ -21,6 +21,7 @@ const en = {
   'project.save': 'Save',
   'project.share': 'Share link',
   'project.importMidi': 'Import MIDI…',
+  'project.exportWav': 'Export WAV',
   'toggle.controls': 'Control style',
   'toggle.sliders': 'Sliders',
   'toggle.knobs': 'Knobs',
@@ -43,18 +44,18 @@ const en = {
   'pianoRoll.zoomIn': 'Zoom in',
   'pianoRoll.zoomOut': 'Zoom out',
   'pianoRoll.hint':
-    'Click to add a note · drag to move · drag the right edge to resize · right-click (or click) a note to delete it · Ctrl + wheel to zoom',
+    'Click to add a note - drag to move - drag the right edge to resize - right-click (or click) a note to delete it - Ctrl + wheel to zoom',
 
   // Rack panel
   'rack.label': 'Rack',
   'rack.add': '+ Add module…',
   'rack.addLabel': 'Add module',
-  'rack.hint': 'Drag a module by its title bar to move it · right-click a knob to type a value',
+  'rack.hint': 'Drag a module by its title bar to move it - right-click a knob to type a value',
   'rack.remove': 'Remove {name}',
   'jack.input': 'Input: {port}',
   'jack.output': 'Output: {port}',
-  'control.knobHint': 'Drag to turn · right-click to type a value · double-click to reset',
-  'control.sliderHint': 'Right-click to type a value · double-click to reset',
+  'control.knobHint': 'Drag to turn - right-click to type a value - double-click to reset',
+  'control.sliderHint': 'Right-click to type a value - double-click to reset',
   'control.valueOf': '{label} value',
 
   // Status messages
@@ -67,6 +68,12 @@ const en = {
   'status.midiImported': 'Imported {name}: {count} notes, {bars} bars',
   'status.midiTruncated': '{name} is {bars} bars long: only the first {max} bars were imported.',
   'status.invalidMidi': '{name} could not be read as a MIDI file.',
+  'status.rendering': 'Rendering audio…',
+  'status.exported': 'Exported {seconds} s of audio',
+  'status.exportedClipped':
+    'Exported {seconds} s of audio, but it clipped: lower the Output volume and export again.',
+  'status.exportEmpty': 'Nothing to export: the piano roll is empty.',
+  'status.exportFailed': 'Audio export failed.',
 
   // Project errors
   'error.notProject': 'This is not a rackhopper project.',
@@ -140,10 +147,10 @@ const en = {
   'option.lowpass': 'Low-pass',
   'option.highpass': 'High-pass',
   'option.bandpass': 'Band-pass',
-}
+};
 
 /** Every valid key: 'project.new' | 'project.open' | ... */
-export type MessageKey = keyof typeof en
+export type MessageKey = keyof typeof en;
 
 const fr: Record<MessageKey, string> = {
   'topbar.github': 'rackhopper sur GitHub (nouvel onglet)',
@@ -154,6 +161,7 @@ const fr: Record<MessageKey, string> = {
   'project.save': 'Enregistrer',
   'project.share': 'Partager le lien',
   'project.importMidi': 'Importer MIDI…',
+  'project.exportWav': 'Exporter WAV',
   'toggle.controls': 'Style des contrôles',
   'toggle.sliders': 'Curseurs',
   'toggle.knobs': 'Boutons rotatifs',
@@ -175,19 +183,19 @@ const fr: Record<MessageKey, string> = {
   'pianoRoll.zoomIn': 'Zoom avant',
   'pianoRoll.zoomOut': 'Zoom arrière',
   'pianoRoll.hint':
-    'Cliquer pour ajouter une note · glisser pour la déplacer · glisser le bord droit pour la redimensionner · clic droit (ou clic) sur une note pour la supprimer · Ctrl + molette pour zoomer',
+    'Cliquer pour ajouter une note - glisser pour la déplacer - glisser le bord droit pour la redimensionner - clic droit (ou clic) sur une note pour la supprimer - Ctrl + molette pour zoomer',
 
   'rack.label': 'Rack',
   'rack.add': '+ Ajouter un module…',
   'rack.addLabel': 'Ajouter un module',
   'rack.hint':
-    'Glisser un module par sa barre de titre pour le déplacer · clic droit sur un bouton pour saisir une valeur',
+    'Glisser un module par sa barre de titre pour le déplacer - clic droit sur un bouton pour saisir une valeur',
   'rack.remove': 'Retirer {name}',
   'jack.input': 'Entrée : {port}',
   'jack.output': 'Sortie : {port}',
   'control.knobHint':
-    'Glisser pour tourner · clic droit pour saisir une valeur · double-clic pour réinitialiser',
-  'control.sliderHint': 'Clic droit pour saisir une valeur · double-clic pour réinitialiser',
+    'Glisser pour tourner - clic droit pour saisir une valeur - double-clic pour réinitialiser',
+  'control.sliderHint': 'Clic droit pour saisir une valeur - double-clic pour réinitialiser',
   'control.valueOf': 'Valeur de {label}',
 
   'status.openedShared': 'Projet partagé ouvert',
@@ -197,8 +205,15 @@ const fr: Record<MessageKey, string> = {
   'status.linkCopied': 'Lien copié dans le presse-papiers',
   'status.copyFromBar': "Copiez le lien depuis la barre d'adresse",
   'status.midiImported': '{name} importé : {count} notes, {bars} mesures',
-  'status.midiTruncated': '{name} fait {bars} mesures : seules les {max} premières ont été importées.',
+  'status.midiTruncated':
+    '{name} fait {bars} mesures : seules les {max} premières ont été importées.',
   'status.invalidMidi': "{name} n'a pas pu être lu comme fichier MIDI.",
+  'status.rendering': 'Rendu audio en cours…',
+  'status.exported': "{seconds} s d'audio exportées",
+  'status.exportedClipped':
+    "{seconds} s d'audio exportées, mais le son sature : baissez le volume de la Sortie et exportez à nouveau.",
+  'status.exportEmpty': "Rien à exporter : le piano roll est vide.",
+  'status.exportFailed': "L'export audio a échoué.",
 
   'error.notProject': "Ce n'est pas un projet rackhopper.",
   'error.version': 'Version de projet non prise en charge : {version}.',
@@ -210,8 +225,10 @@ const fr: Record<MessageKey, string> = {
   'error.damagedLink': 'Ce lien est endommagé ou incomplet.',
   'error.bars': 'La longueur de la boucle doit être un nombre entier de mesures, de 1 à 64.',
   'error.notMidi': "Ce n'est pas un fichier MIDI.",
-  'error.midiSmpte': "Ce fichier MIDI utilise une base de temps SMPTE, qui n'est pas prise en charge.",
-  'error.midiNoNotes': "Ce fichier MIDI ne contient aucune note (les pistes de batterie sont ignorées).",
+  'error.midiSmpte':
+    "Ce fichier MIDI utilise une base de temps SMPTE, qui n'est pas prise en charge.",
+  'error.midiNoNotes':
+    'Ce fichier MIDI ne contient aucune note (les pistes de batterie sont ignorées).',
   'error.midiCorrupt': 'Ce fichier MIDI est endommagé ou incomplet.',
 
   'module.sequencer': 'Séquenceur',
@@ -268,45 +285,45 @@ const fr: Record<MessageKey, string> = {
   'option.lowpass': 'Passe-bas',
   'option.highpass': 'Passe-haut',
   'option.bandpass': 'Passe-bande',
-}
+};
 
-const dictionaries: Record<Language, Record<MessageKey, string>> = { en, fr }
+const dictionaries: Record<Language, Record<MessageKey, string>> = { en, fr };
 
-let current: Language = 'en'
-const listeners: (() => void)[] = []
+let current: Language = 'en';
+const listeners: (() => void)[] = [];
 
 export function getLanguage(): Language {
-  return current
+  return current;
 }
 
 export function setLanguage(language: Language): void {
-  current = language
-  document.documentElement.lang = language
-  for (const listener of listeners) listener()
+  current = language;
+  document.documentElement.lang = language;
+  for (const listener of listeners) listener();
 }
 
 /** Run `listener` every time the language changes. */
 export function onLanguageChange(listener: () => void): void {
-  listeners.push(listener)
+  listeners.push(listener);
 }
 
-type Params = Record<string, string | number>
+type Params = Record<string, string | number>;
 
 function fill(text: string, params: Params = {}): string {
   // Replace each {name} with params.name (left as-is if not given).
   return text.replace(/\{(\w+)\}/g, (match, name: string) =>
     name in params ? String(params[name]) : match,
-  )
+  );
 }
 
 /** Translate a key into the current language. */
 export function t(key: MessageKey, params?: Params): string {
-  return fill(dictionaries[current][key], params)
+  return fill(dictionaries[current][key], params);
 }
 
 /** Translate a key into a given language (e.g. English for error messages in the console). */
 export function tIn(language: Language, key: MessageKey, params?: Params): string {
-  return fill(dictionaries[language][key], params)
+  return fill(dictionaries[language][key], params);
 }
 
 /**
@@ -316,8 +333,8 @@ export function tIn(language: Language, key: MessageKey, params?: Params): strin
 export function tDynamic(key: string, fallback: string): string {
   // Widening to Partial<Record<string, string>> lets us index with any string,
   // and makes the result `string | undefined`, so we must handle "missing".
-  const dictionary: Partial<Record<string, string>> = dictionaries[current]
-  return dictionary[key] ?? fallback
+  const dictionary: Partial<Record<string, string>> = dictionaries[current];
+  return dictionary[key] ?? fallback;
 }
 
 /**
@@ -329,24 +346,24 @@ export class LocalizedError extends Error {
   // Declared as fields rather than as `constructor(readonly key ...)`
   // "parameter properties": the tsconfig option `erasableSyntaxOnly` forbids
   // those, because they aren't plain JavaScript with the types removed.
-  readonly key: MessageKey
-  readonly params: Params
+  readonly key: MessageKey;
+  readonly params: Params;
 
   constructor(key: MessageKey, params: Params = {}) {
-    super(tIn('en', key, params))
-    this.key = key
-    this.params = params
+    super(tIn('en', key, params));
+    this.key = key;
+    this.params = params;
   }
 
   /** The message in the current UI language. */
   translated(): string {
-    return t(this.key, this.params)
+    return t(this.key, this.params);
   }
 }
 
 /** The browser's preferred language, if we have it, else English. */
 export function detectLanguage(): Language {
-  return navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+  return navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en';
 }
 
 /**
@@ -356,11 +373,12 @@ export function detectLanguage(): Language {
  */
 export function applyStaticTranslations(root: ParentNode = document): void {
   for (const element of root.querySelectorAll<HTMLElement>('[data-i18n]')) {
-    const key = element.dataset.i18n
-    if (key) element.textContent = tDynamic(key, element.textContent)
+    const key = element.dataset.i18n;
+    if (key) element.textContent = tDynamic(key, element.textContent);
   }
   for (const element of root.querySelectorAll<HTMLElement>('[data-i18n-label]')) {
-    const key = element.dataset.i18nLabel // data-i18n-label becomes dataset.i18nLabel
-    if (key) element.setAttribute('aria-label', tDynamic(key, element.getAttribute('aria-label') ?? ''))
+    const key = element.dataset.i18nLabel; // data-i18n-label becomes dataset.i18nLabel
+    if (key)
+      element.setAttribute('aria-label', tDynamic(key, element.getAttribute('aria-label') ?? ''));
   }
 }

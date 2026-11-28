@@ -25,7 +25,8 @@ import type { SynthModule } from './modules/synth-module.ts'
 import { Vca } from './modules/vca.ts'
 import { Vco } from './modules/vco.ts'
 import { importMidi } from './midi.ts'
-import { defaultMelody, MAX_BARS, quantize, type Song } from './notes.ts'
+import { defaultMelody, loopBeats, MAX_BARS, quantize, type Song } from './notes.ts'
+import { audibleLength, encodeWav } from './wav.ts'
 import { Patch } from './patch.ts'
 import {
   parseProject,
@@ -62,6 +63,7 @@ const barsInput = mustFind<HTMLInputElement>('#bars')
 const zoomInButton = mustFind<HTMLButtonElement>('#zoom-in')
 const zoomOutButton = mustFind<HTMLButtonElement>('#zoom-out')
 const importMidiButton = mustFind<HTMLButtonElement>('#import-midi')
+const exportButton = mustFind<HTMLButtonElement>('#export-audio')
 const midiFileInput = mustFind<HTMLInputElement>('#midi-file')
 const voicesSelect = mustFind<HTMLSelectElement>('#voices')
 const addModuleSelect = mustFind<HTMLSelectElement>('#add-module')
@@ -92,11 +94,11 @@ document.addEventListener('keydown', resumeAudio, { once: true })
 
 const patch = new Patch()
 
-/** Every ADSR in the patch. */
-function envelopes(): Adsr[] {
+/** Every ADSR in a patch (the live one unless told otherwise). */
+function envelopes(target: Patch = patch): Adsr[] {
   // TypeScript infers that this arrow function is a *type predicate*
   // ("returns true only for Adsr"), so filter() returns Adsr[], not SynthModule[].
-  return patch.modules.filter((m) => m instanceof Adsr)
+  return target.modules.filter((m) => m instanceof Adsr)
 }
 
 /** The sequencer, if there is one in the rack (`find` returns undefined otherwise). */
@@ -104,13 +106,16 @@ function currentSequencer(): Sequencer | undefined {
   return patch.modules.find((m) => m instanceof Sequencer)
 }
 
-/** Hook a newly created module up to the rest of the app. */
-function prepare(module: SynthModule): void {
+/**
+ * Hook a newly created module up to the rest of the app. `target` is the patch
+ * it belongs to: the live one, or the offline copy used for audio export.
+ */
+function prepare(module: SynthModule, target: Patch = patch): void {
   if (module instanceof Sequencer) {
     // Sequencer gates go to every ADSR in the patch, looked up at each gate so
     // ADSRs added later get them too.
     module.onGate = (voice, on, time, velocity) => {
-      for (const env of envelopes()) {
+      for (const env of envelopes(target)) {
         if (on) env.gateOn(voice, time, velocity)
         else env.gateOff(voice, time)
       }
@@ -425,11 +430,15 @@ function applyControls(module: SynthModule, values: SavedModule['controls']): vo
   }
 }
 
-/** Replace the current project with a saved one. */
-function loadProject(project: SavedProject): void {
-  clearRack()
-  patch.setVoices(project.voices)
-  showVoices(project.voices)
+/**
+ * Build a saved project's modules and cables into an (empty) patch.
+ *
+ * Takes the patch, audio context and song as parameters instead of using the
+ * live ones, so the same code builds the live rack (loadProject) and the
+ * offline copy that renders audio for export (exportAudio).
+ */
+function buildPatch(target: Patch, audio: BaseAudioContext, project: SavedProject, targetSong: Song): void {
+  target.setVoices(project.voices)
 
   // Saved id -> id of the module built for it, to remap connections.
   const newIds = new Map<string, string>()
@@ -439,13 +448,13 @@ function loadProject(project: SavedProject): void {
       continue
     }
     const info = moduleInfo(saved.type)
-    if (info.singleton && patch.modules.some((m) => m.type === saved.type)) continue
+    if (info.singleton && target.modules.some((m) => m.type === saved.type)) continue
     // Use the saved slot if it's free, otherwise the first free one.
-    const slot = patch.isFree(saved) ? { col: saved.col, row: saved.row } : patch.firstFreeSlot()
+    const slot = target.isFree(saved) ? { col: saved.col, row: saved.row } : target.firstFreeSlot()
     if (!slot) break // rack full
-    const module = info.create({ ctx, song })
-    prepare(module)
-    patch.add(module, slot)
+    const module = info.create({ ctx: audio, song: targetSong })
+    prepare(module, target)
+    target.add(module, slot)
     applyControls(module, saved.controls)
     newIds.set(saved.id, module.id)
   }
@@ -455,12 +464,18 @@ function loadProject(project: SavedProject): void {
     const to = newIds.get(c.to.moduleId)
     if (!from || !to) continue // one end was a skipped module
     try {
-      patch.connectRefs({ moduleId: from, port: c.from.port }, { moduleId: to, port: c.to.port })
+      target.connectRefs({ moduleId: from, port: c.from.port }, { moduleId: to, port: c.to.port })
     } catch (error) {
       console.warn('Skipping connection', c, error) // e.g. a port that doesn't exist
     }
   }
+}
 
+/** Replace the current project with a saved one. */
+function loadProject(project: SavedProject): void {
+  clearRack()
+  showVoices(project.voices)
+  buildPatch(patch, ctx, project, song)
   replaceSong({ notes: project.notes, bars: project.bars })
   rack.refresh()
   refreshAddMenu()
@@ -525,17 +540,78 @@ confirmOnSecondClick(newButton, 'project.new', 'project.newConfirm', () => {
   refreshAddMenu()
 })
 
-saveButton.addEventListener('click', () => {
-  // A download is a temporary link to a Blob (an in-memory file), clicked from code.
-  const blob = new Blob([JSON.stringify(currentProject(), null, 2)], { type: 'application/json' })
+/** Offer a Blob (an in-memory file) as a download, through a temporary link clicked from code. */
+function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = 'rackhopper-project.json'
+  link.download = filename
   link.click()
   // Give the browser a moment to start the download before freeing the Blob.
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+saveButton.addEventListener('click', () => {
+  const json = JSON.stringify(currentProject(), null, 2)
+  download(new Blob([json], { type: 'application/json' }), 'rackhopper-project.json')
 })
+
+// --- Audio export ------------------------------------------------------------------
+//
+// Rendered offline: the current project is rebuilt inside an OfflineAudioContext,
+// which computes the sound into memory as fast as it can instead of playing it.
+// That's faster than real time, and sample-exact. One pass through the loop is
+// rendered, plus a tail for reverb and delay to ring out; the silent end of the
+// tail is trimmed.
+
+const EXPORT_TAIL_SECONDS = 8
+
+async function exportAudio(): Promise<void> {
+  if (song.notes.length === 0) {
+    showStatus(t('status.exportEmpty'), true)
+    return
+  }
+  exportButton.disabled = true
+  showStatus(t('status.rendering'))
+  try {
+    // A snapshot of the project: building from it gives an independent copy of
+    // the rack, so the live one isn't touched (it can even keep playing).
+    const project = currentProject()
+    const exportSong: Song = { notes: project.notes, bars: project.bars }
+    const tempo = project.modules.find((m) => m.type === 'sequencer')?.controls.tempo
+    const bpm = typeof tempo === 'number' ? tempo : 120
+    const loopSeconds = (loopBeats(exportSong) * 60) / bpm
+
+    const rate = ctx.sampleRate
+    // The total length has to be known before rendering starts.
+    const offline = new OfflineAudioContext({
+      numberOfChannels: 2,
+      length: Math.ceil((loopSeconds + EXPORT_TAIL_SECONDS) * rate),
+      sampleRate: rate,
+    })
+    const offlinePatch = new Patch()
+    buildPatch(offlinePatch, offline, project, exportSong)
+    const sequencer = offlinePatch.modules.find((m) => m instanceof Sequencer)
+    sequencer?.scheduleOnce(0)
+
+    const rendered = await offline.startRendering()
+    for (const module of offlinePatch.modules) module.dispose()
+
+    const frames = audibleLength(rendered, Math.ceil(loopSeconds * rate))
+    const { blob, clipped } = encodeWav(rendered, frames)
+    download(blob, 'rackhopper.wav')
+    const seconds = (frames / rate).toFixed(1)
+    // Clipping (samples past full scale) is shown as a warning, in red.
+    showStatus(t(clipped ? 'status.exportedClipped' : 'status.exported', { seconds }), clipped)
+  } catch (error) {
+    console.error('Audio export failed', error)
+    showStatus(t('status.exportFailed'), true)
+  } finally {
+    exportButton.disabled = false
+  }
+}
+
+exportButton.addEventListener('click', () => void exportAudio())
 
 // "Open" clicks a hidden <input type="file">, which shows the file picker.
 openButton.addEventListener('click', () => fileInput.click())
