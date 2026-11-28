@@ -1,4 +1,5 @@
 import { t, tIn, type MessageKey } from './i18n.ts'
+import { isValueControl } from './modules/controls.ts'
 import type { Note } from './notes.ts'
 import type { Connection, Patch, PortRef } from './patch.ts'
 
@@ -47,7 +48,8 @@ export function serializeProject(patch: Patch, notes: readonly Note[]): SavedPro
       type: m.type,
       ...patch.positionOf(m.id),
       // Object.fromEntries turns [key, value] pairs into an object.
-      controls: Object.fromEntries(m.controls.map((c) => [c.id, c.get()])),
+      // Displays (the oscilloscope screen) have nothing to save, so skip them.
+      controls: Object.fromEntries(m.controls.filter(isValueControl).map((c) => [c.id, c.get()])),
     })),
     connections: patch.connections.map((c) => ({ from: { ...c.from }, to: { ...c.to } })),
     notes: notes.map((n) => ({ ...n })),

@@ -87,10 +87,15 @@ penguin hopping along a patch cable between two jacks.
   poly out -> mono in sums, poly -> poly channel by channel. `Patch.setVoices` unplugs all
   cables, rebuilds, and replugs. Voice count is global (Voices menu in the transport).
 - VCO unison: N detuned oscillators per voice, mixed at 1/sqrt(N).
-- Effects (Delay, Chorus, Reverb) are mono modules meant for the end of the chain
-  (after the VCA): a poly cable into them is summed. They share `DryWet`
-  (`src/modules/dry-wet.ts`, equal-power "Mix" knob). Reverb generates its impulse
-  response (decaying stereo noise) instead of loading a file.
+- Effects (Drive, EQ, Chorus, Delay, Reverb, Compressor) are mono modules meant for the
+  end of the chain (after the VCA): a poly cable into them is summed. Chorus, Delay and
+  Reverb share `DryWet` (`src/modules/dry-wet.ts`, equal-power "Mix" knob). Reverb
+  generates its impulse response (decaying stereo noise) instead of loading a file.
+  Controls centred on zero (EQ gains) set `bipolar: true` so the knob arc starts at the top.
+- Scope: an AnalyserNode (kept processing through a silent gain to the destination), with
+  a `thru` output. Its screen is a `ScopeControl` (`kind: 'scope'`): a display, not a
+  value, so it's excluded from saving (`isValueControl`) and drawn by `src/ui/scope.ts`
+  on every animation frame (rising zero-crossing trigger).
 - Save/load (`src/project.ts`): one versioned JSON format (`SavedProject`: voices,
   modules with `{ id, type, col, row, controls }`, connections, notes) for autosave
   (localStorage, every second if changed), Save/Open (.json file) and Share link

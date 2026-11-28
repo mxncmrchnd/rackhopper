@@ -1,6 +1,7 @@
 import type { Control, SelectControl, SliderControl } from '../modules/controls.ts'
 import { t, tDynamic } from '../i18n.ts'
 import { el } from './dom.ts'
+import { renderScope } from './scope.ts'
 
 /** A control's label in the current language, looked up by its stable id. */
 function labelOf(control: Control): string {
@@ -22,6 +23,8 @@ export function renderControl(control: Control, style: ControlStyle): HTMLElemen
       return style === 'knob' ? renderKnob(control) : renderSlider(control)
     case 'select': // ...and a SelectControl here
       return renderSelect(control)
+    case 'scope':
+      return renderScope(control)
     default: {
       // Exhaustiveness check: if a new kind is added to the Control union and
       // not handled above, `control` isn't `never` any more and this line
@@ -102,6 +105,7 @@ const UNIT_FACTORS: Record<string, number> = {
   ct: 1,
   oct: 1,
   bpm: 1,
+  db: 1,
 }
 
 /** The unit at the end of a formatted value: "200 ms" -> "ms", "0.25" -> "". */
@@ -194,7 +198,9 @@ function renderKnob(control: SliderControl): HTMLElement {
   const redraw = (): void => {
     const t = toUnit(control, control.get())
     const angle = -SWEEP + t * 2 * SWEEP
-    value.setAttribute('d', arc(-SWEEP, angle))
+    // A bipolar knob's arc runs from the top (0 degrees) to the pointer, either way.
+    const from = control.bipolar ? 0 : -SWEEP
+    value.setAttribute('d', arc(Math.min(from, angle), Math.max(from, angle)))
     const inner = polar(angle, 4)
     const outer = polar(angle, 10)
     pointer.setAttribute('x1', String(inner.x))

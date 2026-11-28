@@ -1,84 +1,88 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>rackhopper</title>
-    <script>
-      // Apply a saved theme before anything is drawn, so a reload doesn't flash
-      // the other theme first. (The rest of the app loads later, in main.ts.)
-      try {
-        const theme = localStorage.getItem('rackhopper.theme')
-        if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme
-      } catch {}
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-    />
-  </head>
-  <body>
-    <header class="topbar">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rackhopper</title>
+  <script>
+    // Apply a saved theme before anything is drawn, so a reload doesn't flash
+    // the other theme first. (The rest of the app loads later, in main.ts.)
+    try {
+      const theme = localStorage.getItem('rackhopper.theme')
+      if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme
+    } catch { }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+</head>
+
+<body>
+  <header class="topbar">
+    <!-- TODO: put your GitHub profile or repository URL in href. -->
+    <a class="logo-link" href="https://github.com/mxncmrchnd/rackhopper/" target="_blank" rel="noopener noreferrer"
+      aria-label="rackhopper on GitHub (opens in a new tab)" data-i18n-label="topbar.github">
       <img class="logo" src="/logo.png" alt="" width="36" height="36" />
-      <h1>rackhopper</h1>
-      <nav class="project-actions" aria-label="Project" data-i18n-label="project.label">
-        <button id="new-project" class="topbar-button" type="button" data-i18n="project.new">
-          New
-        </button>
-        <button id="open-project" class="topbar-button" type="button" data-i18n="project.open">
-          Open…
-        </button>
-        <button id="save-project" class="topbar-button" type="button" data-i18n="project.save">
-          Save
-        </button>
-        <button id="share-project" class="topbar-button" type="button" data-i18n="project.share">
-          Share link
-        </button>
-        <input id="project-file" type="file" accept=".json,application/json" hidden />
-      </nav>
-      <span id="status" class="status" role="status" aria-live="polite"></span>
-      <!-- Segmented toggles (controls, theme, language) are added here by main.ts. -->
-      <div id="toggles" class="toggles"></div>
-    </header>
+    </a>
+    <h1>rackhopper</h1>
+    <nav class="project-actions" aria-label="Project" data-i18n-label="project.label">
+      <button id="new-project" class="topbar-button" type="button" data-i18n="project.new">
+        New
+      </button>
+      <button id="open-project" class="topbar-button" type="button" data-i18n="project.open">
+        Open…
+      </button>
+      <button id="save-project" class="topbar-button" type="button" data-i18n="project.save">
+        Save
+      </button>
+      <button id="share-project" class="topbar-button" type="button" data-i18n="project.share">
+        Share link
+      </button>
+      <input id="project-file" type="file" accept=".json,application/json" hidden />
+    </nav>
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+    <!-- Segmented toggles (controls, theme, language) are added here by main.ts. -->
+    <div id="toggles" class="toggles"></div>
+  </header>
 
-    <main class="workspace">
-      <section class="panel sequencer" aria-label="Sequencer" data-i18n-label="sequencer.label">
-        <div class="transport">
-          <button id="play" type="button" aria-pressed="false">Play</button>
-          <button id="clear" type="button" data-i18n="transport.clear">Clear</button>
-          <label class="voices">
-            <span data-i18n="transport.voices">Voices</span>
-            <select id="voices">
-              <option value="1" data-i18n="transport.mono">1 (mono)</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="6">6</option>
-              <option value="8">8</option>
-            </select>
-          </label>
-        </div>
-        <p class="hint" data-i18n="pianoRoll.hint"></p>
-        <div class="piano-roll-scroll">
-          <canvas id="piano-roll"></canvas>
-        </div>
-      </section>
-
-      <section class="panel rack-panel" aria-label="Rack" data-i18n-label="rack.label">
-        <div class="rack-toolbar">
-          <select id="add-module" aria-label="Add module" data-i18n-label="rack.addLabel">
-            <option value="" data-i18n="rack.add">+ Add module…</option>
+  <main class="workspace">
+    <section class="panel sequencer" aria-label="Sequencer" data-i18n-label="sequencer.label">
+      <div class="transport">
+        <button id="play" type="button" aria-pressed="false">Play</button>
+        <button id="clear" type="button" data-i18n="transport.clear">Clear</button>
+        <label class="voices">
+          <span data-i18n="transport.voices">Voices</span>
+          <select id="voices">
+            <option value="1" data-i18n="transport.mono">1 (mono)</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
           </select>
-          <p class="hint" data-i18n="rack.hint"></p>
-        </div>
-        <div class="rack-scroll">
-          <div id="rack" class="rack"></div>
-        </div>
-      </section>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+        </label>
+      </div>
+      <p class="hint" data-i18n="pianoRoll.hint"></p>
+      <div class="piano-roll-scroll">
+        <canvas id="piano-roll"></canvas>
+      </div>
+    </section>
+
+    <section class="panel rack-panel" aria-label="Rack" data-i18n-label="rack.label">
+      <div class="rack-toolbar">
+        <select id="add-module" aria-label="Add module" data-i18n-label="rack.addLabel">
+          <option value="" data-i18n="rack.add">+ Add module…</option>
+        </select>
+        <p class="hint" data-i18n="rack.hint"></p>
+      </div>
+      <div class="rack-scroll">
+        <div id="rack" class="rack"></div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

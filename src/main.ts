@@ -253,6 +253,12 @@ function refreshAddMenu(): void {
     option.textContent = tDynamic(`module.${option.value}`, info.title)
     option.disabled = info.singleton === true && patch.modules.some((m) => m.type === option.value)
   }
+
+  // Sort by the displayed (translated) name, so the order follows the language.
+  // localeCompare sorts like a dictionary would ("Écho" with the E's, not after Z).
+  const [placeholder, ...modules] = addModuleSelect.options
+  modules.sort((a, b) => a.text.localeCompare(b.text, getLanguage()))
+  addModuleSelect.replaceChildren(placeholder, ...modules)
 }
 refreshAddMenu()
 

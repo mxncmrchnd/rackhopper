@@ -13,6 +13,7 @@ export type Language = 'en' | 'fr'
 
 const en = {
   // Top bar
+  'topbar.github': 'rackhopper on GitHub (opens in a new tab)',
   'project.label': 'Project',
   'project.new': 'New',
   'project.newConfirm': 'Click again: new project',
@@ -78,6 +79,10 @@ const en = {
   'module.delay': 'Delay',
   'module.chorus': 'Chorus',
   'module.reverb': 'Reverb',
+  'module.drive': 'Drive',
+  'module.compressor': 'Compressor',
+  'module.eq': 'EQ',
+  'module.scope': 'Scope',
   'module.output': 'Output',
 
   // Control labels, by control id
@@ -103,6 +108,15 @@ const en = {
   'control.mix': 'Mix',
   'control.size': 'Size',
   'control.tone': 'Tone',
+  'control.drive': 'Drive',
+  'control.threshold': 'Threshold',
+  'control.ratio': 'Ratio',
+  'control.low': 'Low',
+  'control.mid': 'Mid',
+  'control.midFreq': 'Mid freq',
+  'control.high': 'High',
+  'control.range': 'Range',
+  'control.display': 'Oscilloscope display',
 
   // Dropdown options, by value
   'option.sine': 'Sine',
@@ -118,6 +132,7 @@ const en = {
 export type MessageKey = keyof typeof en
 
 const fr: Record<MessageKey, string> = {
+  'topbar.github': 'rackhopper sur GitHub (nouvel onglet)',
   'project.label': 'Projet',
   'project.new': 'Nouveau',
   'project.newConfirm': 'Cliquer à nouveau : nouveau projet',
@@ -180,6 +195,10 @@ const fr: Record<MessageKey, string> = {
   'module.delay': 'Écho',
   'module.chorus': 'Chorus',
   'module.reverb': 'Réverb',
+  'module.drive': 'Saturation',
+  'module.compressor': 'Compresseur',
+  'module.eq': 'Égaliseur',
+  'module.scope': 'Oscillo',
   'module.output': 'Sortie',
 
   'control.wave': 'Onde',
@@ -204,6 +223,15 @@ const fr: Record<MessageKey, string> = {
   'control.mix': 'Mélange',
   'control.size': 'Taille',
   'control.tone': 'Timbre',
+  'control.drive': 'Gain',
+  'control.threshold': 'Seuil',
+  'control.ratio': 'Ratio',
+  'control.low': 'Graves',
+  'control.mid': 'Médiums',
+  'control.midFreq': 'Fréq. méd.',
+  'control.high': 'Aigus',
+  'control.range': 'Échelle',
+  'control.display': "Écran de l'oscilloscope",
 
   'option.sine': 'Sinus',
   'option.triangle': 'Triangle',

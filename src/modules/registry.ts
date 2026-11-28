@@ -1,11 +1,15 @@
 import type { Note } from '../notes.ts'
 import { Adsr } from './adsr.ts'
 import { Chorus } from './chorus.ts'
+import { Compressor } from './compressor.ts'
 import { Delay } from './delay.ts'
+import { Drive } from './drive.ts'
+import { Eq } from './eq.ts'
 import { Filter } from './filter.ts'
 import { Lfo } from './lfo.ts'
 import { Output } from './output.ts'
 import { Reverb } from './reverb.ts'
+import { Scope } from './scope.ts'
 import { Sequencer } from './sequencer.ts'
 import type { SynthModule } from './synth-module.ts'
 import { Vca } from './vca.ts'
@@ -49,10 +53,16 @@ export const MODULE_TYPES = {
   filter: { title: 'Filter', create: ({ ctx }) => new Filter(ctx) },
   vca: { title: 'VCA', create: ({ ctx }) => new Vca(ctx) },
   adsr: { title: 'ADSR', create: ({ ctx }) => new Adsr(ctx) },
-  // Effects: mono, meant for the end of the chain (after the VCA).
-  delay: { title: 'Delay', create: ({ ctx }) => new Delay(ctx) },
+  // Effects: mono, meant for the end of the chain (after the VCA). Listed in a
+  // typical order: tone shaping, then modulation and space, then dynamics.
+  drive: { title: 'Drive', create: ({ ctx }) => new Drive(ctx) },
+  eq: { title: 'EQ', create: ({ ctx }) => new Eq(ctx) },
   chorus: { title: 'Chorus', create: ({ ctx }) => new Chorus(ctx) },
+  delay: { title: 'Delay', create: ({ ctx }) => new Delay(ctx) },
   reverb: { title: 'Reverb', create: ({ ctx }) => new Reverb(ctx) },
+  compressor: { title: 'Compressor', create: ({ ctx }) => new Compressor(ctx) },
+  // Utilities
+  scope: { title: 'Scope', create: ({ ctx }) => new Scope(ctx) },
   output: {
     title: 'Output',
     singleton: true,

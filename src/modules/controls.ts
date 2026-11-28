@@ -30,6 +30,8 @@ export interface SliderControl {
    * Needs `min` > 0.
    */
   scale: 'linear' | 'log'
+  /** For ranges centred on zero (e.g. -15..+15 dB): the knob's arc starts from the top. */
+  bipolar?: boolean
   format: (value: number) => string
   get: () => number
   set: (value: number) => void
@@ -44,7 +46,32 @@ export interface SelectControl {
   set: (value: string) => void
 }
 
-export type Control = SliderControl | SelectControl
+/**
+ * A display rather than an input: an oscilloscope screen. It has no value to
+ * set or save; the UI just asks for fresh samples on every animation frame.
+ */
+export interface ScopeControl {
+  kind: 'scope'
+  id: string
+  label: string
+  sampleRate: number
+  /** The latest samples, oldest first. */
+  samples: () => Float32Array
+  /** How much time to show, in seconds. */
+  window: () => number
+  /** The screen shows -range..+range vertically. */
+  range: () => number
+}
+
+export type Control = SliderControl | SelectControl | ScopeControl
+
+/** The controls that hold a value (and get saved): everything except displays. */
+export type ValueControl = SliderControl | SelectControl
+
+/** Type predicate: narrows a Control to a ValueControl, e.g. in `controls.filter(isValueControl)`. */
+export function isValueControl(control: Control): control is ValueControl {
+  return control.kind !== 'scope'
+}
 
 export const WAVEFORMS: readonly OscillatorType[] = ['sine', 'triangle', 'sawtooth', 'square']
 
@@ -58,4 +85,7 @@ export const format = {
   number: (v: number): string => v.toPrecision(2),
   integer: (v: number): string => String(Math.round(v)),
   bpm: (v: number): string => `${Math.round(v)} BPM`,
+  // Signed, so boosts read "+3.0 dB". (-0.04 rounds to "-0.0", hence the fix-up.)
+  db: (v: number): string => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-0.0', '0.0')} dB`,
+  ratio: (v: number): string => `${v.toFixed(1)}:1`,
 }
