@@ -80,6 +80,13 @@ commented throughout. Good places to start reading:
 - `src/patch.ts`: the patch model (modules, cables, polyphony wiring)
 - `src/modules/sequencer.ts`: the look-ahead scheduler
 
+### Built with Claude Code
+
+rackhopper was developed with [Claude Code](https://claude.com/claude-code), Anthropic's
+AI coding assistant.
+The project's conventions and architecture notes, which Claude Code reads at the start
+of each session, are in [`CLAUDE.md`](CLAUDE.md).
+
 ## Browser support
 
 Developed and tested in Firefox. It should work in any recent browser with Web Audio
